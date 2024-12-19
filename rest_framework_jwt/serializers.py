@@ -4,7 +4,13 @@ from calendar import timegm
 from datetime import datetime, timedelta
 
 from django.contrib.auth import authenticate, get_user_model
-from django.utils.translation import ugettext as _
+try:
+    # For Django 3.x and earlier
+    from django.utils.translation import ugettext as gettext
+except ImportError:
+    # For Django 4.x and later
+    from django.utils.translation import gettext
+
 from rest_framework import serializers
 from .compat import Serializer
 
@@ -51,7 +57,7 @@ class JSONWebTokenSerializer(Serializer):
 
             if user:
                 if not user.is_active:
-                    msg = _('User account is disabled.')
+                    msg = gettext('User account is disabled.')
                     raise serializers.ValidationError(msg)
 
                 payload = jwt_payload_handler(user)
@@ -61,10 +67,10 @@ class JSONWebTokenSerializer(Serializer):
                     'user': user
                 }
             else:
-                msg = _('Unable to log in with provided credentials.')
+                msg = gettext('Unable to log in with provided credentials.')
                 raise serializers.ValidationError(msg)
         else:
-            msg = _('Must include "{username_field}" and "password".')
+            msg = gettext('Must include "{username_field}" and "password".')
             msg = msg.format(username_field=self.username_field)
             raise serializers.ValidationError(msg)
 
@@ -85,10 +91,10 @@ class VerificationBaseSerializer(Serializer):
         try:
             payload = jwt_decode_handler(token)
         except jwt.ExpiredSignature:
-            msg = _('Signature has expired.')
+            msg = gettext('Signature has expired.')
             raise serializers.ValidationError(msg)
         except jwt.DecodeError:
-            msg = _('Error decoding signature.')
+            msg = gettext('Error decoding signature.')
             raise serializers.ValidationError(msg)
 
         return payload
@@ -97,18 +103,18 @@ class VerificationBaseSerializer(Serializer):
         username = jwt_get_username_from_payload(payload)
 
         if not username:
-            msg = _('Invalid payload.')
+            msg = gettext('Invalid payload.')
             raise serializers.ValidationError(msg)
 
         # Make sure user exists
         try:
             user = User.objects.get_by_natural_key(username)
         except User.DoesNotExist:
-            msg = _("User doesn't exist.")
+            msg = gettext("User doesn't exist.")
             raise serializers.ValidationError(msg)
 
         if not user.is_active:
-            msg = _('User account is disabled.')
+            msg = gettext('User account is disabled.')
             raise serializers.ValidationError(msg)
 
         return user
@@ -156,10 +162,10 @@ class RefreshJSONWebTokenSerializer(VerificationBaseSerializer):
             now_timestamp = timegm(datetime.utcnow().utctimetuple())
 
             if now_timestamp > expiration_timestamp:
-                msg = _('Refresh has expired.')
+                msg = gettext('Refresh has expired.')
                 raise serializers.ValidationError(msg)
         else:
-            msg = _('orig_iat field is required.')
+            msg = gettext('orig_iat field is required.')
             raise serializers.ValidationError(msg)
 
         new_payload = jwt_payload_handler(user)

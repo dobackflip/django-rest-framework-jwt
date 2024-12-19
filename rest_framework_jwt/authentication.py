@@ -2,7 +2,14 @@ import jwt
 
 from django.contrib.auth import get_user_model
 from django.utils.encoding import smart_str
-from django.utils.translation import ugettext as _
+
+try:
+    # For Django 3.x and earlier
+    from django.utils.translation import ugettext as gettext
+except ImportError:
+    # For Django 4.x and later
+    from django.utils.translation import gettext
+
 from rest_framework import exceptions
 from rest_framework.authentication import (
     BaseAuthentication, get_authorization_header
@@ -32,10 +39,10 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         try:
             payload = jwt_decode_handler(jwt_value)
         except jwt.ExpiredSignature:
-            msg = _('Signature has expired.')
+            msg = gettext('Signature has expired.')
             raise exceptions.AuthenticationFailed(msg)
         except jwt.DecodeError:
-            msg = _('Error decoding signature.')
+            msg = gettext('Error decoding signature.')
             raise exceptions.AuthenticationFailed(msg)
         except jwt.InvalidTokenError:
             raise exceptions.AuthenticationFailed()
@@ -52,17 +59,17 @@ class BaseJSONWebTokenAuthentication(BaseAuthentication):
         username = jwt_get_username_from_payload(payload)
 
         if not username:
-            msg = _('Invalid payload.')
+            msg = gettext('Invalid payload.')
             raise exceptions.AuthenticationFailed(msg)
 
         try:
             user = User.objects.get_by_natural_key(username)
         except User.DoesNotExist:
-            msg = _('Invalid signature.')
+            msg = gettext('Invalid signature.')
             raise exceptions.AuthenticationFailed(msg)
 
         if not user.is_active:
-            msg = _('User account is disabled.')
+            msg = gettext('User account is disabled.')
             raise exceptions.AuthenticationFailed(msg)
 
         return user
@@ -91,10 +98,10 @@ class JSONWebTokenAuthentication(BaseJSONWebTokenAuthentication):
             return None
 
         if len(auth) == 1:
-            msg = _('Invalid Authorization header. No credentials provided.')
+            msg = gettext('Invalid Authorization header. No credentials provided.')
             raise exceptions.AuthenticationFailed(msg)
         elif len(auth) > 2:
-            msg = _('Invalid Authorization header. Credentials string '
+            msg = gettext('Invalid Authorization header. Credentials string '
                     'should not contain spaces.')
             raise exceptions.AuthenticationFailed(msg)
 
